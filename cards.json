@@ -85,7 +85,32 @@
         }
       ],
       "wrong_note": "错题（08-20）：.items() 遍历把 key 误当字典本身。记住：key 是「标签」，value 是「内容」。",
-      "mastery": 82
+      "mastery": 82,
+      "knowledge": [
+        {
+          "t": "提取器原理",
+          "b": "输出格式（表格列）由 system prompt 定义，LLM 只负责填表。魔法在 prompt，不在代码。"
+        },
+        {
+          "t": "PICO 六字段",
+          "b": "P 人群 / I 干预 / C 对照 / O 结局，再加 研究方法 和 关键数据，共 6 列。"
+        },
+        {
+          "t": "兜底规则",
+          "b": "写在格式模板的引号内：\"C\": \"对照措施（无对照填 无）\"。没有对照时 AI 不乱编。"
+        },
+        {
+          "t": ".items() 遍历",
+          "b": "for key, value in data.items()：key = 字段名（标签），value = 内容。加列也不用改打印代码。"
+        }
+      ],
+      "code": [
+        {
+          "name": "extract_paper.py（核心）",
+          "lang": "python",
+          "code": "SYSTEM_PICO = \"\"\"你是医学文献分析助手。\n请从用户提供的文献摘要中提取信息，只输出 JSON，\n不要输出任何解释或其他文字，不要使用代码块标记。\n必须使用以下格式：\n{\n  \"P\": \"研究对象（患者人群）\",\n  \"I\": \"干预措施\",\n  \"C\": \"对照措施（无对照填 无）\",\n  \"O\": \"主要结局指标\",\n  \"研究方法\": \"研究设计类型\",\n  \"关键数据\": \"样本量、发生率、生存期等关键数字\"\n}\"\"\"\n\nabstract = \"我们开展了一项单臂回顾性研究，纳入 85 例接受机器人辅助食管切除术的患者……\"\nresult = ask_llm(abstract, system=SYSTEM_PICO)\n\n# 遍历打印：列再多也只用两行\ntry:\n    data = json.loads(result)\n    for key, value in data.items():\n        print(f\"  {key}: {value}\")\nexcept Exception:\n    start = result.find(\"{\")\n    end = result.rfind(\"}\")\n    if start != -1 and end != -1:\n        data = json.loads(result[start:end + 1])\n        for key, value in data.items():\n            print(f\"  {key}: {value}\")"
+        }
+      ]
     },
     {
       "id": "task-013",
@@ -160,7 +185,36 @@
         }
       ],
       "wrong_note": "错题（08-19）：万→百万换算小数点移位（10 万 = 0.1 百万，1.5 万 = 0.015 百万）。自查法：先写全数字再数零。",
-      "mastery": 85
+      "mastery": 85,
+      "knowledge": [
+        {
+          "t": "Token 计数规则",
+          "b": "英文 1 token ≈ 0.75 词（1000 词 ≈ 1333 token）；中文 1 字 ≈ 1-1.5 token（1000 字 ≈ 1000-1500）。"
+        },
+        {
+          "t": "上下文窗口",
+          "b": "模型一次最多接收的 token（输入 + 输出一起算）。DeepSeek 约 64K-128K。超了报错或被截断。"
+        },
+        {
+          "t": "费用公式",
+          "b": "费用 = 输入 token × 输入单价 + 输出 token × 输出单价。输出比输入贵约 4 倍（输入约 2 元/百万，输出约 8 元/百万）。"
+        },
+        {
+          "t": "实际账",
+          "b": "读 1 篇 10 页文献 ≈ 3 分钱；100 篇 ≈ 2-3 元。科研助手批量提取经济上完全可行。"
+        },
+        {
+          "t": "单位换算自查",
+          "b": "万 → 百万小数点移两位：15 万 = 0.15 百万。心里没底就先写全数字再数零。"
+        }
+      ],
+      "code": [
+        {
+          "name": "费用计算.py",
+          "lang": "python",
+          "code": "def api_cost(input_tokens, output_tokens, in_price=2, out_price=8):\n    \"\"\"in_price / out_price 单位：元/百万 token\"\"\"\n    cost = input_tokens / 1_000_000 * in_price + \\\n           output_tokens / 1_000_000 * out_price\n    return round(cost, 4)\n\nprint(api_cost(200_000, 5_000))   # 输入20万+输出5万 = 0.8 元\nprint(api_cost(1_500_000, 30_000)) # 输入150万+输出3万 = 3.24 元"
+        }
+      ]
     },
     {
       "id": "task-012",
@@ -236,7 +290,36 @@
         }
       ],
       "wrong_note": "错题（08-18）：find 找不到返回 -1 误答 0。0 是合法索引（第 0 位），Python 用 -1 表示找不到。",
-      "mastery": 82
+      "mastery": 82,
+      "knowledge": [
+        {
+          "t": "参数 vs 步骤",
+          "b": "参数 = 输入口（prompt / system / model / temperature）；步骤 = 函数内部 4 步（选客户端→组织消息→发请求→取正文）。"
+        },
+        {
+          "t": "批量 = 列表 + for",
+          "b": "abstract 单字符串 → abstracts 列表 + for 循环。列表加元素不用改循环，for 自己数。"
+        },
+        {
+          "t": "try / except",
+          "b": "try = 危险区（可能崩的代码），except = 兜底区。没接住的报错会让整个程序立刻停止。"
+        },
+        {
+          "t": "抢救策略",
+          "b": "find(\"{\") 找第一个 {，rfind(\"}\") 找最后一个 }，切片 result[start:end+1] 抠出 JSON 再解析（+1 圈住 }）。"
+        },
+        {
+          "t": "find 找不到 = -1",
+          "b": "不是 0！0 是合法位置（第 0 位）。判断用 if start != -1。"
+        }
+      ],
+      "code": [
+        {
+          "name": "批量 + 容错（核心）",
+          "lang": "python",
+          "code": "abstracts = [\"第 1 篇摘要……\", \"第 2 篇摘要……\", \"第 3 篇摘要……\"]\n\nfor ab in abstracts:\n    result = ask_llm(ab, system=SYSTEM_JSON)   # 调 LLM 提取\n    try:\n        data = json.loads(result)              # 危险区：模型吐废话会崩在这\n        print(data[\"研究类型\"], data[\"样本量\"])\n    except Exception:\n        # 兜底：从废话里抢救 JSON\n        start = result.find(\"{\")\n        end = result.rfind(\"}\")\n        if start != -1 and end != -1:\n            data = json.loads(result[start:end+1])\n            print(data[\"研究类型\"], data[\"样本量\"], \"（抢救成功）\")\n        else:\n            print(\"这篇救不了，跳过：\", result)"
+        }
+      ]
     },
     {
       "id": "task-011",
@@ -313,7 +396,40 @@
         }
       ],
       "wrong_note": "",
-      "mastery": 88
+      "mastery": 88,
+      "knowledge": [
+        {
+          "t": "温度 ≠ 精确度",
+          "b": "温度管随机性。回答不专业不是温度低的问题，是 system prompt 没写好。"
+        },
+        {
+          "t": "字面量 vs 变量",
+          "b": "带引号 \"system\" 是字符串本身；不带引号 system 是变量名。调用函数时别写错。"
+        },
+        {
+          "t": "messages 三角色",
+          "b": "system = 幕后指令（管它是什么角色、怎么回答）；user = 用户问题；assistant = 模型回答。"
+        },
+        {
+          "t": "system prompt 三要素",
+          "b": "身份 + 指令 + 格式模板；再补一条禁止项管干净（如「不要输出解释」）。"
+        },
+        {
+          "t": "json.loads",
+          "b": "把字符串变成字典（s = string）。模型吐回的是字符串，要解析才能 data[\"字段\"]。"
+        },
+        {
+          "t": "定义与调用同步",
+          "b": "def ask_llm(prompt, system=\"\") 定义了参数，调用就要传或给默认值，否则 TypeError。"
+        }
+      ],
+      "code": [
+        {
+          "name": "extract_json.py（核心）",
+          "lang": "python",
+          "code": "import json\n\n# 四铁律：身份 + 明确指令 + 禁止项 + 格式模板\nSYSTEM_JSON = \"\"\"你是医学文献分析助手。\n请从用户提供的文献摘要中提取信息，只输出 JSON，\n不要输出任何解释或其他文字，不要使用代码块标记。\n必须使用以下格式：\n{\n  \"研究类型\": \"填写研究类型\",\n  \"样本量\": 填写数字,\n  \"主要结论\": \"填写一句话结论\"\n}\"\"\"\n\nabstract = \"我们开展了一项回顾性队列研究，纳入 210 例接受胸腔镜肺叶切除术的患者……\"\n\nresult = ask_llm(abstract, system=SYSTEM_JSON)   # ask_llm 来自 task-010\nprint(result)\n\ndata = json.loads(result)   # 字符串 -> 字典\nprint(data[\"研究类型\"], data[\"样本量\"], data[\"主要结论\"])"
+        }
+      ]
     },
     {
       "id": "task-010",
@@ -386,6 +502,31 @@
             "API Key 错误或缺失"
           ],
           "answer": 3
+        }
+      ],
+      "knowledge": [
+        {
+          "t": "函数化调用",
+          "b": "ask_llm(prompt) 把 ChatGPT 从聊天框拿出来，变成代码里的一行函数调用。"
+        },
+        {
+          "t": "内部 4 步",
+          "b": "选客户端（选药房）→ 组织消息（写医嘱单）→ 发请求（递单）→ 取正文（抽回执）。"
+        },
+        {
+          "t": "双客户端",
+          "b": "local_client 连本地 Ollama 的 qwen（免费），cloud_client 连 DeepSeek（花钱更强）。改 model 参数切换，代码不动。"
+        },
+        {
+          "t": "API Key 安全",
+          "b": "身份凭证放 .env 文件，用 os.getenv 读取——不写死在代码里，不发给别人。"
+        }
+      ],
+      "code": [
+        {
+          "name": "llm_demo.py（核心）",
+          "lang": "python",
+          "code": "import os\nfrom openai import OpenAI\nfrom dotenv import load_dotenv\n\nload_dotenv()  # 把 .env 里的 API Key 读进来\n\nlocal_client = OpenAI(base_url=\"http://localhost:11434/v1\", api_key=\"ollama\")\ncloud_client = OpenAI(api_key=os.getenv(\"DEEPSEEK_API_KEY\"),\n                      base_url=os.getenv(\"DEEPSEEK_BASE_URL\"))\n\ndef ask_llm(prompt, system=\"\", model=\"qwen\", temperature=0):\n    if model == \"qwen\":\n        client, model_name = local_client, \"qwen3.5:9b\"\n    else:\n        client, model_name = cloud_client, \"deepseek-chat\"\n\n    response = client.chat.completions.create(\n        model=model_name,\n        messages=[\n            {\"role\": \"system\", \"content\": system},\n            {\"role\": \"user\", \"content\": prompt},\n        ],\n        temperature=temperature,\n    )\n    return response.choices[0].message.content\n\n# 用法：改 model= 切换本地/云端\nprint(ask_llm(\"胸腔镜术后常见并发症？\", model=\"qwen\"))"
         }
       ]
     },
@@ -460,6 +601,31 @@
             "温度太高"
           ],
           "answer": 1
+        }
+      ],
+      "knowledge": [
+        {
+          "t": "预测下一个词",
+          "b": "LLM 不是查数据库。它看着前面的话猜下一个词，猜完再猜下一个，一路猜到句号——整段回答就是这么来的。"
+        },
+        {
+          "t": "Token",
+          "b": "模型处理文本的最小积木块。英文 1 token ≈ 0.75 词；中文 1 字 ≈ 1-1.5 token。"
+        },
+        {
+          "t": "上下文窗口",
+          "b": "模型一次最多能「看」的 token 数（输入 + 输出一起算）。塞满了，旧内容被挤掉或直接报错。"
+        },
+        {
+          "t": "温度",
+          "b": "随机性旋钮：0 = 稳定可预测，高 = 更多样也可能跑偏。它不是「精确度」开关。"
+        }
+      ],
+      "code": [
+        {
+          "name": "token 估算.py",
+          "lang": "python",
+          "code": "def estimate_tokens(text):\n    chinese = sum(1 for ch in text if '\\u4e00' <= ch <= '\\u9fff')\n    other = len(text) - chinese\n    return int(chinese * 1.25 + other * 0.75)\n\nprint(estimate_tokens(\"胸腔镜肺叶切除术后的并发症分析\"))\n# 中文 14 字 ≈ 18 token"
         }
       ]
     },
@@ -537,6 +703,31 @@
           ],
           "answer": 2
         }
+      ],
+      "knowledge": [
+        {
+          "t": "数据结构",
+          "b": "paper_template 8 字段模板字典 + papers 列表套字典：一个列表装多篇，一篇一个字典。"
+        },
+        {
+          "t": "函数拆模块",
+          "b": "add_paper / show_all / save_to_file / load_from_file——每个函数只干一件事，拼起来就是完整程序。"
+        },
+        {
+          "t": "参数传递（引用）",
+          "b": "列表传进函数，函数里 append 改的就是外面那个列表——不用 return 也会变。字符串数字则不会。"
+        },
+        {
+          "t": "enumerate",
+          "b": "for i, paper in enumerate(papers, 1): 同时拿「序号」和「元素」，1 表示从 1 开始编号。"
+        }
+      ],
+      "code": [
+        {
+          "name": "paper_manager.py（核心）",
+          "lang": "python",
+          "code": "import json\n\n# 模板：一篇文献的 8 个字段\ntemplate = {\"论文名称\": \"\", \"作者\": \"\", \"杂志名称\": \"\", \"年份\": \"\",\n            \"卷\": \"\", \"期\": \"\", \"页\": \"\", \"关键词\": \"\"}\n\ndef add_paper(papers):\n    paper = {}\n    paper[\"论文名称\"] = input(\"论文名称：\")\n    paper[\"作者\"] = input(\"作者：\")\n    papers.append(paper)\n    print(f\"已添加：{paper['论文名称']}\")\n\ndef show_all(papers):\n    for i, paper in enumerate(papers, 1):\n        print(f\"{i}. {paper['论文名称']} ({paper['作者']})\")\n\ndef save_to_file(papers):\n    with open(\"papers.json\", \"w\", encoding=\"utf-8\") as f:\n        json.dump(papers, f, ensure_ascii=False, indent=2)\n\ndef load_from_file():\n    with open(\"papers.json\", \"r\", encoding=\"utf-8\") as f:\n        return json.load(f)\n\n# 主程序：加载 → 添加 → 显示 → 保存\ndb = load_from_file()\nadd_paper(db)\nshow_all(db)\nsave_to_file(db)"
+        }
       ]
     },
     {
@@ -610,6 +801,32 @@
           ],
           "answer": 3
         }
+      ],
+      "knowledge": [
+        {
+          "t": "pip = 应用商店",
+          "b": "pip install 包名 安装别人写好的工具包，装完 import 就能用，不用自己从头写。"
+        },
+        {
+          "t": "两种导入写法",
+          "b": "import os 拿整个模块，用时写 os.getenv(...)；from openai import OpenAI 只拿一个东西，直接用 OpenAI(...)。"
+        },
+        {
+          "t": "环境坑（最常见报错）",
+          "b": "包必须装进当前使用的 Python 环境。uv 管理的项目用 uv pip install，否则运行时报 ModuleNotFoundError。"
+        }
+      ],
+      "code": [
+        {
+          "name": "安装命令",
+          "lang": "bash",
+          "code": "pip install requests          # 普通环境\nuv pip install requests       # uv 管理的项目（AI-Study 用这个）"
+        },
+        {
+          "name": "import 使用",
+          "lang": "python",
+          "code": "import os                       # 整个模块，用 os.getenv(...)\nfrom openai import OpenAI       # 只拿一个类，直接用 OpenAI(...)\n\nimport requests\nresp = requests.get(\"https://example.com\")\nprint(resp.status_code)         # 200 = 请求成功"
+        }
       ]
     },
     {
@@ -682,6 +899,27 @@
             "生成备份"
           ],
           "answer": 1
+        }
+      ],
+      "knowledge": [
+        {
+          "t": "json.dump / json.load",
+          "b": "dump 把数据写进文件（存盘），load 从文件读回。程序关了数据还在——这就是持久化。"
+        },
+        {
+          "t": "with open",
+          "b": "with open(路径, \"w\") as f: 打开文件，缩进块结束自动关闭，不用手动 close。"
+        },
+        {
+          "t": "中文不乱码",
+          "b": "写中文要加 encoding=\"utf-8\"，json.dump 还要加 ensure_ascii=False，否则中文变成 \\uXXXX 乱码。"
+        }
+      ],
+      "code": [
+        {
+          "name": "paper_saver.py",
+          "lang": "python",
+          "code": "import json\n\npapers = [\n    {\"标题\": \"肺癌免疫治疗进展\", \"年份\": 2024, \"作者数\": 6},\n    {\"标题\": \"胸腔镜肺叶切除的微创优势\", \"年份\": 2023, \"作者数\": 4}\n]\n\n# 存盘：把列表写进 papers.json\nwith open(\"papers.json\", \"w\", encoding=\"utf-8\") as f:\n    json.dump(papers, f, ensure_ascii=False)\n\n# 读回：程序重启后数据还在\nwith open(\"papers.json\", \"r\", encoding=\"utf-8\") as f:\n    papers = json.load(f)\n\nfor paper in papers:\n    print(paper[\"标题\"])"
         }
       ]
     },
@@ -758,6 +996,31 @@
           ],
           "answer": 3
         }
+      ],
+      "knowledge": [
+        {
+          "t": "def 打包",
+          "b": "def 函数名(参数): 把一段逻辑打包，随时调用。参数是入口，return 把结果交出来。"
+        },
+        {
+          "t": "if / elif / else",
+          "b": "条件判断走哪条路。条件成立走 if 分支，不成立依次试 elif，都不成立走 else。"
+        },
+        {
+          "t": "字典冒号 vs 等号",
+          "b": "字典里键值之间用冒号：{\"疾病\": \"肺癌\"}；给变量赋值用等号：name = \"Leo\"。两码事，别混。"
+        },
+        {
+          "t": "for + return 提前退出",
+          "b": "遍历标题时一碰到中文字符就 return，函数立即结束——classify_paper 判断中英文的秘密。"
+        }
+      ],
+      "code": [
+        {
+          "name": "classify_paper.py",
+          "lang": "python",
+          "code": "def classify_paper(title):\n    for char in title:\n        if '\\u4e00' <= char <= '\\u9fff':   # 中文字符范围\n            return '中文文献'\n    return '英文文献'                        # for 循环走完都没命中，就是英文\n\nprint(classify_paper('Lung cancer'))\nprint(classify_paper('肺癌免疫治疗进展'))"
+        }
       ]
     },
     {
@@ -832,6 +1095,31 @@
           ],
           "answer": 1
         }
+      ],
+      "knowledge": [
+        {
+          "t": "列表 [ ]",
+          "b": "一列数据，从 0 开始数。papers[0] 是第 1 个，papers[2] 是第 3 个。"
+        },
+        {
+          "t": "字典 { }",
+          "b": "键值对：p[\"标题\"] 按标签取值。标签写错就 KeyError。"
+        },
+        {
+          "t": "for 循环",
+          "b": "for paper in papers: 自动逐个处理列表里的每个元素，不用自己数下标。"
+        },
+        {
+          "t": "列表套字典",
+          "b": "一篇文献一个字典，所有文献装进一个列表——文献库的核心结构：papers = [ {…}, {…} ]。"
+        }
+      ],
+      "code": [
+        {
+          "name": "文献库.py",
+          "lang": "python",
+          "code": "papers = [\n    \"胸腔镜肺叶切除术的并发症分析\",\n    \"食管癌新辅助放化疗的疗效观察\",\n    \"早期肺癌SBRT vs 手术的随机对照\"\n]\n\npaper_info = {\n    \"标题\": \"胸腔镜肺叶切除术的并发症分析\",\n    \"年份\": 2025,\n    \"样本量\": 320,\n    \"结论\": \"胸腔镜组并发症率显著低于开胸组(12% vs 24%)\"\n}\n\nprint(\"文献库：\")\nfor paper in papers:              # 逐个打印标题\n    print(\"  \" + paper)\n\nprint(\"文献详情：\")\nprint(f\"标题：{paper_info['标题']}\")\nprint(f\"样本量：{paper_info['样本量']}\")"
+        }
       ]
     },
     {
@@ -904,6 +1192,31 @@
             "可以，重新赋值覆盖旧值"
           ],
           "answer": 3
+        }
+      ],
+      "knowledge": [
+        {
+          "t": "变量 = 盒子",
+          "b": "name = \"Leo\" 把 \"Leo\" 装进 name 这个盒子。之后写 name 就代表 \"Leo\"。"
+        },
+        {
+          "t": "字符串 vs 数字",
+          "b": "带引号的是字符串（文本），不带引号的是数字。print(\"5\") 和 print(5) 看着一样，一个是文本一个是数。"
+        },
+        {
+          "t": "f-string 插值",
+          "b": "f\"你好，{name}\" 把 name 的值填进花括号的位置——字符串和变量拼接最省事的方式。"
+        },
+        {
+          "t": "input() 接收输入",
+          "b": "input(\"提示语\") 会停下来等用户打字，回车后返回输入的内容，通常马上装进变量。"
+        }
+      ],
+      "code": [
+        {
+          "name": "name_card.py",
+          "lang": "python",
+          "code": "name = input(\"你的名字：\")\nprint(f\"你好，{name}，欢迎学习 AI\")\n\n# 运行效果：\n# 你的名字：Leo\n# 你好，Leo，欢迎学习 AI"
         }
       ]
     },
@@ -978,6 +1291,31 @@
           ],
           "answer": 3
         }
+      ],
+      "knowledge": [
+        {
+          "t": "终端是什么",
+          "b": "用文字命令操作电脑的窗口。文件管理器用鼠标点，终端用命令走。"
+        },
+        {
+          "t": "cd 切换目录",
+          "b": "cd 文件夹名 进入该文件夹；cd .. 回上一级；cd 完整路径 直接跳过去。"
+        },
+        {
+          "t": "ls 查看",
+          "b": "列出当前目录下的所有文件。想确认自己站在哪、有什么，先敲 ls。"
+        },
+        {
+          "t": "python 运行",
+          "b": "python 文件名.py 运行脚本，效果和 VS Code 右键 Run 一样。"
+        }
+      ],
+      "code": [
+        {
+          "name": "终端命令",
+          "lang": "bash",
+          "code": "cd 项目文件夹      # 进入文件夹\nls                  # 看看里面有什么\npython hello.py     # 运行脚本\ncd ..               # 回上一级"
+        }
       ]
     },
     {
@@ -1050,6 +1388,36 @@
             "文件太大"
           ],
           "answer": 2
+        }
+      ],
+      "knowledge": [
+        {
+          "t": "写代码在做什么",
+          "b": "你在用文字给电脑下指令。电脑从第一行开始，一行一条指令地执行。"
+        },
+        {
+          "t": ".py 文件",
+          "b": "Python 代码存放在以 .py 结尾的文本文件里。流程三步：新建文件 → 写代码 → 运行。"
+        },
+        {
+          "t": "print() 输出",
+          "b": "把括号里的内容显示到屏幕上。print(\"Hello\") 屏幕上就会打出 Hello。"
+        },
+        {
+          "t": "两种运行方式",
+          "b": "VS Code 里右键 Run；或在终端输入 python 文件名.py。效果一样。"
+        }
+      ],
+      "code": [
+        {
+          "name": "hello.py",
+          "lang": "python",
+          "code": "# 第一行代码\nprint(\"Hello, AI Doctor\")\n\n# 运行后屏幕显示：Hello, AI Doctor"
+        },
+        {
+          "name": "终端运行",
+          "lang": "bash",
+          "code": "# 在终端里运行 hello.py\npython hello.py"
         }
       ]
     }
