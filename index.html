@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>每日复习 · AI-Study</title>
+<style>
+  :root {
+    --bg: #f6f8fc;
+    --card: #ffffff;
+    --ink: #22304a;
+    --ink-soft: #5a6b8c;
+    --accent: #2b5fd9;
+    --accent-soft: #e7eefc;
+    --gold: #a87a1f;
+    --gold-soft: #faf3e3;
+    --line: #dde5f2;
+    --ok: #1e8e5a;
+    --ok-soft: #e5f5ec;
+    --bad: #c0392b;
+    --bad-soft: #fbeae7;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 18px 60px;
+  }
+  header { text-align:center; padding: 30px 16px 10px; }
+  .logo { color: var(--accent); font-size: 1.3rem; font-weight: 700; letter-spacing: 6px; }
+  .today-line { color: var(--ink-soft); font-size: 0.88rem; margin-top: 8px; }
+  .divider { width: 40px; height: 3px; background: var(--gold); border-radius: 2px; margin: 22px auto; }
+  .stat-bar {
+    display: flex; gap: 8px; justify-content: space-between;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 14px; text-align: center;
+  }
+  .stat { flex: 1; }
+  .stat .n { font-size: 1.15rem; font-weight: 700; color: var(--accent); }
+  .stat .l { font-size: 0.72rem; color: var(--ink-soft); }
+  .copy-row { display: flex; gap: 8px; margin-bottom: 18px; }
+  .copy-btn {
+    flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--card); font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    color: var(--accent); font-family: inherit;
+  }
+  .copy-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .sec-title {
+    font-size: 0.85rem; font-weight: 600; color: var(--ink-soft);
+    margin: 22px 4px 10px; letter-spacing: 1px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .sec-title .cnt { color: var(--accent); font-weight: 700; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 10px 0;
+    transition: border-color .15s;
+  }
+  .card.open { border-color: var(--accent); }
+  .card-head { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .no {
+    flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    font-weight: 700; font-size: 0.78rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card.done .no { background: var(--ok-soft); color: var(--ok); }
+  .card.fail .no { background: var(--bad-soft); color: var(--bad); }
+  .t { font-weight: 600; font-size: 0.95rem; flex: 1; }
+  .meta { font-size: 0.74rem; color: var(--ink-soft); margin-top: 2px; }
+  .badge {
+    flex-shrink: 0; font-size: 0.7rem; color: var(--gold);
+    background: var(--gold-soft); border-radius: 10px; padding: 2px 8px;
+  }
+  .badge.due { color: var(--bad); background: var(--bad-soft); }
+  .badge.ok { color: var(--ok); background: var(--ok-soft); }
+  .card-body { display: none; margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 12px; }
+  .card.open .card-body { display: block; }
+  .q-progress { font-size: 0.76rem; color: var(--ink-soft); margin-bottom: 8px; }
+  .q-type {
+    display: inline-block; font-size: 0.7rem; padding: 1px 9px; border-radius: 10px;
+    margin-bottom: 6px; font-weight: 600;
+  }
+  .q-type.base { background: var(--accent-soft); color: var(--accent); }
+  .q-type.apply { background: var(--gold-soft); color: var(--gold); }
+  .q-type.mix { background: var(--bad-soft); color: var(--bad); }
+  .quiz-q { font-size: 0.95rem; font-weight: 600; margin-bottom: 10px; }
+  .opt {
+    display: block; width: 100%; text-align: left;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 14px; margin: 6px 0; font-size: 0.9rem; color: var(--ink);
+    cursor: pointer; font-family: inherit;
+  }
+  .opt:hover { border-color: var(--accent); }
+  .opt.correct { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); font-weight: 600; }
+  .opt.wrong { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .opt:disabled { cursor: default; }
+  .verdict { font-size: 0.92rem; font-weight: 600; margin: 10px 0 4px; }
+  .verdict.ok { color: var(--ok); }
+  .verdict.bad { color: var(--bad); }
+  .next-btn {
+    display: inline-block; margin-top: 10px; padding: 9px 26px;
+    background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .points {
+    background: var(--accent-soft); border-radius: 10px; padding: 12px 14px;
+    font-size: 0.87rem; margin: 10px 0;
+  }
+  .points .pt { margin: 6px 0; }
+  .warn {
+    background: var(--bad-soft); border-radius: 10px; padding: 10px 14px;
+    font-size: 0.83rem; color: var(--bad); margin: 8px 0;
+  }
+  .rate-row { display: flex; gap: 8px; margin-top: 10px; }
+  .rate-btn {
+    flex: 1; padding: 10px 0; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--card); font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .rate-btn:hover { border-color: var(--accent); }
+  .rate-btn.r1 { color: var(--ok); }
+  .rate-btn.r2 { color: var(--gold); }
+  .next-info { font-size: 0.82rem; color: var(--ink-soft); margin-top: 10px; }
+  .next-info b { color: var(--accent); }
+  .wrong-list { margin-top: 8px; }
+  .wrong-item { font-size: 0.84rem; color: var(--bad); margin: 4px 0; }
+  .empty {
+    background: var(--card); border: 1px dashed var(--line); border-radius: 12px;
+    text-align: center; color: var(--ink-soft); font-size: 0.88rem;
+    padding: 26px 16px; margin: 10px 0;
+  }
+  .tag {
+    display: inline-block; background: var(--accent-soft); color: var(--accent);
+    font-size: 0.72rem; padding: 1px 9px; border-radius: 10px; margin-right: 5px; margin-top: 6px;
+  }
+  .tag.gold { background: var(--gold-soft); color: var(--gold); }
+  footer { text-align: center; color: var(--ink-soft); font-size: 0.75rem; margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); }
+  #saveTip { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: #fff; font-size: 0.78rem; padding: 6px 16px;
+    border-radius: 16px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 99; }
+  #saveTip.show { opacity: .92; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">每 日 复 习</div>
+  <div class="today-line" id="todayLine"></div>
+</header>
+<div class="divider"></div>
+
+<div class="stat-bar">
+  <div class="stat"><div class="n" id="stDone">0/0</div><div class="l">今日已复习</div></div>
+  <div class="stat"><div class="n" id="stAcc">--</div><div class="l">今日正确率</div></div>
+  <div class="stat"><div class="n" id="stWrong">0</div><div class="l">错题盯防</div></div>
+  <div class="stat"><div class="n" id="stPool">0</div><div class="l">卡片总数</div></div>
+</div>
+
+<div class="copy-row">
+  <button class="copy-btn" onclick="copySummary()">复制今日复习摘要（发给导师）</button>
+</div>
+
+<div class="sec-title">今 日 复 习 清 单 <span class="cnt" id="todayCnt"></span></div>
+<div id="todayList"></div>
+
+<div class="sec-title">错 题 专 区 <span class="cnt" id="wrongCnt"></span></div>
+<div id="wrongList"></div>
+<div class="sec-title">全 部 卡 片 <span class="cnt" id="allCnt"></span></div>
+<div id="allList"></div>
+
+<div id="saveTip">已同步</div>
+
+<footer>艾宾浩斯遗忘曲线 · 学后第 1 / 2 / 4 / 7 / 15 / 30 天复习 · AI-Study</footer>
+
+<script>
+const LS_KEY = 'review_state_v1';
+const INTERVALS = [1, 2, 4, 7, 15, 30];
+const TYPE_NAME = { base: '基础', apply: '运用', mix: '综合' };
+let CARDS = [];
+let CARDS_VERSION = 1;
+let STATE = {};   // id -> {interval_idx, next_review, last_result, last_review, history:[{date,result,correct,total,wrong_qs:[]}]}
+let QUIZ = {};    // id -> {idx, results:[]}
+let TODAY = '';
+
+function fmt(d) {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return y + '-' + m + '-' + day;
+}
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return fmt(d);
+}
+function ageDays(dateStr) {
+  return Math.round((new Date(TODAY+'T00:00:00') - new Date(dateStr+'T00:00:00')) / 86400000);
+}
+function cnDate(dateStr) {
+  const p = dateStr.split('-');
+  return p[1] + '月' + p[2] + '日';
+}
+
+async function load() {
+  const todayD = new Date();
+  TODAY = fmt(todayD);
+  document.getElementById('todayLine').textContent =
+    '今天是 ' + cnDate(TODAY) + ' · 打开即见今日该复习什么';
+  const r = await fetch('cards.json', {cache:'no-store'});
+  const data = await r.json();
+  CARDS = data.cards;
+  CARDS_VERSION = data.version || 1;
+  initState();
+  renderAll();
+}
+
+function initState() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(LS_KEY)); } catch(e) {}
+  if (saved && saved.state) {
+    STATE = saved.state;
+    // 题库升级：版本不一致时，把今日清单涉及的卡拉回今天重做
+    if ((saved.version || 1) < CARDS_VERSION) {
+      for (const c of CARDS) {
+        const st = STATE[c.id];
+        if (st && st.next_review && st.next_review > TODAY && ageDays(c.date) <= 7) {
+          st.next_review = TODAY;      // 重新出现在今日清单
+          st.last_result = null;
+        }
+      }
+      localStorage.setItem(LS_KEY, JSON.stringify({version: CARDS_VERSION, state: STATE}));
+    }
+  } else {
+    STATE = {};
+  }
+  // 补全新卡
+  let changed = false;
+  for (const c of CARDS) {
+    if (!STATE[c.id]) {
+      const age = ageDays(c.date);
+      const st = age > 7
+        ? { interval_idx: 5, next_review: addDays(TODAY, 30), last_result: null, last_review: null, history: [] }
+        : { interval_idx: 0, next_review: addDays(c.date, 1), last_result: null, last_review: null, history: [] };
+      STATE[c.id] = st;
+      changed = true;
+    }
+  }
+  if (changed) { saveState(); }
+}
+
+function saveState() {
+  localStorage.setItem(LS_KEY, JSON.stringify({version: CARDS_VERSION, state: STATE}));
+  fetch('api/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ saved_at: new Date().toISOString(), state: STATE })
+  }).then(res => res.json()).then(d => {
+    if (d && d.ok) showTip('结果已同步给导师');
+  }).catch(() => {});
+}
+
+let tipTimer = null;
+function showTip(msg) {
+  const el = document.getElementById('saveTip');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+function cardState(c) { return STATE[c.id] || {}; }
+function isDue(c) {
+  const st = cardState(c);
+  return st.next_review && st.next_review <= TODAY;
+}
+function wasWrong(c) {
+  const st = cardState(c);
+  return st.history && st.history.some(h => h.result === 'wrong');
+}
+
+function qsOf(c) { return c.quizzes || (c.quiz ? [c.quiz] : []); }
+
+function cardHTML(c, withBody) {
+  const st = cardState(c);
+  const due = isDue(c);
+  const doneToday = st.last_review === TODAY;
+  let cls = 'card';
+  let badgeCls = 'badge';
+  let badgeText = '下次 ' + cnDate(st.next_review);
+  if (due) { badgeCls += ' due'; badgeText = '今天该复习'; }
+  else if (doneToday) { badgeCls += ' ok'; badgeText = '今日已完成'; }
+  if (doneToday && st.last_result === 'wrong') { cls += ' fail'; }
+  else if (doneToday) { cls += ' done'; }
+
+  let wrongHtml = '';
+  if (c.wrong_note && (doneToday || wasWrong(c))) {
+    wrongHtml = '<div class="warn">盯防：' + c.wrong_note + '</div>';
+  }
+
+  let body = '';
+  if (withBody) {
+    body = '<div class="card-body" id="body-' + c.id + '">' +
+      '<div id="quizArea-' + c.id + '"></div>' +
+      '<div class="points" id="pts-' + c.id + '" style="display:none"><b>要点回顾</b>' +
+        c.points.map(p => '<div class="pt">· ' + p + '</div>').join('') + '</div>' +
+      wrongHtml +
+      '<div class="next-info" id="next-' + c.id + '"></div>' +
+      '</div>';
+  }
+
+  return '<div class="' + cls + '" id="card-' + c.id + '">' +
+    '<div class="card-head" onclick="toggleCard(\'' + c.id + '\')">' +
+      '<div class="no">' + c.id.replace('task-', '') + '</div>' +
+      '<div style="flex:1"><div class="t">' + c.title + '</div>' +
+      '<div class="meta">' + cnDate(c.date) + ' 学习 · ' + c.tags.join(' / ') + ' · ' + qsOf(c).length + ' 题</div></div>' +
+      '<div class="' + badgeCls + '">' + badgeText + '</div>' +
+    '</div>' + body + '</div>';
+}
+
+function toggleCard(id) {
+  const el = document.getElementById('card-' + id);
+  const wasOpen = el.classList.contains('open');
+  document.querySelectorAll('.card.open').forEach(x => x.classList.remove('open'));
+  if (!wasOpen) {
+    el.classList.add('open');
+    if (!QUIZ[id]) QUIZ[id] = { idx: 0, results: [] };
+    renderQuestion(id);
+  }
+}
+
+function renderQuestion(id) {
+  const c = CARDS.find(x => x.id === id);
+  const qz = QUIZ[id];
+  const qs = qsOf(c);
+  if (qz.idx >= qs.length) { finishQuiz(id); return; }
+  const q = qs[qz.idx];
+  const area = document.getElementById('quizArea-' + id);
+  const opts = ['A', 'B', 'C', 'D'].map((L, i) =>
+    '<button class="opt" data-i="' + i + '">' + L + '. ' + q.options[i] + '</button>'
+  ).join('');
+  area.innerHTML =
+    '<div class="q-progress">第 ' + (qz.idx + 1) + ' / ' + c.quizzes.length + ' 题</div>' +
+    '<span class="q-type ' + q.type + '">' + TYPE_NAME[q.type] + '题</span>' +
+    '<div class="quiz-q">' + q.q + '</div>' +
+    opts +
+    '<div id="verdict-' + id + '"></div>';
+}
+
+function handleAnswer(btn) {
+  const cardEl = btn.closest('.card');
+  const id = cardEl.id.replace('card-', '');
+  const c = CARDS.find(x => x.id === id);
+  const qz = QUIZ[id];
+  const q = c.quizzes[qz.idx];
+  const chosen = parseInt(btn.dataset.i, 10);
+  const ok = chosen === q.answer;
+  const opts = cardEl.querySelectorAll('#quizArea-' + id + ' .opt');
+  opts.forEach(o => o.disabled = true);
+  opts[chosen].classList.add(ok ? 'correct' : 'wrong');
+  if (!ok) opts[q.answer].classList.add('correct');
+
+  const v = document.getElementById('verdict-' + id);
+  if (ok) {
+    v.className = 'verdict ok';
+    v.innerHTML = '答对了。' + (qz.idx + 1 < c.quizzes.length
+      ? '<br><button class="next-btn" onclick="renderQuestion(\'' + id + '\')">下一题</button>'
+      : '<br><button class="next-btn" onclick="renderQuestion(\'' + id + '\')">看结果</button>');
+  } else {
+    v.className = 'verdict bad';
+    v.innerHTML = '答错了。正确答案是 ' + ['A','B','C','D'][q.answer] + '。' +
+      (qz.idx + 1 < c.quizzes.length
+        ? '<br><button class="next-btn" onclick="renderQuestion(\'' + id + '\')">下一题</button>'
+        : '<br><button class="next-btn" onclick="renderQuestion(\'' + id + '\')">看结果</button>');
+  }
+  qz.results.push({ idx: qz.idx, type: q.type, ok: ok });
+  qz.idx += 1;
+}
+
+function finishQuiz(id) {
+  const c = CARDS.find(x => x.id === id);
+  const qz = QUIZ[id];
+  const correct = qz.results.filter(r => r.ok).length;
+  const total = qz.results.length;
+  const allOk = correct === total;
+  const st = cardState(c);
+  const area = document.getElementById('quizArea-' + id);
+  const pts = document.getElementById('pts-' + id);
+  const next = document.getElementById('next-' + id);
+
+  const wrongItems = qz.results.filter(r => !r.ok).map(r => {
+    const q = qsOf(c)[r.idx];
+    return '<div class="wrong-item">第 ' + (r.idx + 1) + ' 题（' + TYPE_NAME[r.type] + '）：' + q.q + '</div>';
+  }).join('');
+
+  area.innerHTML = '<div class="verdict ' + (allOk ? 'ok' : 'bad') + '">本卡 ' + correct + '/' + total + ' 题' +
+    (allOk ? '，全部答对。' : '，有错题，明天整组重来。') + '</div>' +
+    (allOk ? '' : '<div class="wrong-list">' + wrongItems + '</div>');
+  pts.style.display = 'block';
+
+  st.last_review = TODAY;
+  st.history = st.history || [];
+  st.history.push({
+    date: TODAY,
+    result: allOk ? 'correct' : 'wrong',
+    correct: correct,
+    total: total,
+    wrong_qs: qz.results.filter(r => !r.ok).map(r => r.idx + 1)
+  });
+
+  if (allOk) {
+    area.insertAdjacentHTML('beforeend',
+      '<div class="rate-row"><button class="rate-btn r1" onclick="handleRate(\'' + id + '\',\'remember\')">记住了</button>' +
+      '<button class="rate-btn r2" onclick="handleRate(\'' + id + '\',\'fuzzy\')">模糊</button></div>');
+  } else {
+    st.interval_idx = 0;
+    st.next_review = addDays(TODAY, 1);
+    st.last_result = 'wrong';
+    saveState();
+    next.innerHTML = '下次复习：<b>' + cnDate(st.next_review) + '</b>（有错题，重置回 1 天，明天再来）';
+    renderAll();
+  }
+}
+
+function handleRate(id, r) {
+  const c = CARDS.find(x => x.id === id);
+  const st = cardState(c);
+  if (r === 'remember') {
+    st.interval_idx = Math.min(st.interval_idx + 1, INTERVALS.length - 1);
+    st.next_review = addDays(TODAY, INTERVALS[st.interval_idx]);
+    st.last_result = 'correct';
+  } else {
+    st.next_review = addDays(TODAY, INTERVALS[st.interval_idx]);
+    st.last_result = 'fuzzy';
+  }
+  saveState();
+  const next = document.getElementById('next-' + id);
+  next.innerHTML = '下次复习：<b>' + cnDate(st.next_review) + '</b>（间隔 ' + INTERVALS[st.interval_idx] + ' 天）';
+  document.querySelectorAll('#body-' + id + ' .rate-row').forEach(x => x.style.display = 'none');
+  renderAll();
+}
+
+function renderAll() {
+  const dueCards = CARDS.filter(isDue).sort((a, b) => b.date.localeCompare(a.date));
+  const wrongCards = CARDS.filter(c => (c.wrong_note || wasWrong(c)) && !dueCards.includes(c));
+  const rest = CARDS.filter(c => !dueCards.includes(c) && !wrongCards.includes(c))
+                    .sort((a, b) => b.date.localeCompare(a.date));
+
+  document.getElementById('todayCnt').textContent = dueCards.length + ' 张';
+  document.getElementById('todayList').innerHTML = dueCards.length
+    ? dueCards.map(c => cardHTML(c, true)).join('')
+    : '<div class="empty">今日清单已清空。学新课时新卡片会自动加入。</div>';
+
+  document.getElementById('wrongCnt').textContent = wrongCards.length + ' 张';
+  document.getElementById('wrongList').innerHTML = wrongCards.length
+    ? wrongCards.map(c => cardHTML(c, true)).join('')
+    : '<div class="empty">暂无待盯防错题。</div>';
+
+  document.getElementById('allCnt').textContent = rest.length + ' 张';
+  document.getElementById('allList').innerHTML = rest.map(c => cardHTML(c, false)).join('');
+
+  const doneToday = CARDS.filter(c => cardState(c).last_review === TODAY);
+  let todayOk = 0, todayTotal = 0;
+  for (const c of doneToday) {
+    const h = (cardState(c).history || []).filter(x => x.date === TODAY);
+    const last = h[h.length - 1];
+    if (last) { todayOk += last.correct; todayTotal += last.total; }
+  }
+  document.getElementById('stDone').textContent = doneToday.length + '/' + dueCards.length;
+  document.getElementById('stAcc').textContent = todayTotal ? Math.round(100 * todayOk / todayTotal) + '%' : '--';
+  document.getElementById('stWrong').textContent = wrongCards.length;
+  document.getElementById('stPool').textContent = CARDS.length;
+}
+
+function copySummary() {
+  const doneCards = CARDS.filter(c => cardState(c).last_review === TODAY)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (!doneCards.length) { showTip('今天还没复习，先做今日清单'); return; }
+  let lines = ['【AI-Study 复习摘要 ' + TODAY + '】'];
+  let tOk = 0, tTotal = 0;
+  for (const c of doneCards) {
+    const h = (cardState(c).history || []).filter(x => x.date === TODAY);
+    const last = h[h.length - 1];
+    if (!last) continue;
+    tOk += last.correct; tTotal += last.total;
+    const mark = last.result === 'correct' ? '过' : '错';
+    lines.push(c.id + ' ' + c.title + '：' + last.correct + '/' + last.total + '（' + mark + '）' +
+      (last.wrong_qs && last.wrong_qs.length ? '，错题：' + last.wrong_qs.map(n => '第' + n + '题').join('、') : ''));
+  }
+  lines.push('合计 ' + tOk + '/' + tTotal + '，正确率 ' + Math.round(100 * tOk / tTotal) + '%');
+  const text = lines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showTip('摘要已复制，发给导师即可')).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showTip('摘要已复制，发给导师即可'); } catch(e) { prompt('手动复制：', text); }
+  ta.remove();
+}
+
+document.addEventListener('click', function(e) {
+  const opt = e.target.closest('.opt');
+  if (opt && !opt.disabled) return handleAnswer(opt);
+});
+
+load();
+</script>
+</body>
+</html>
