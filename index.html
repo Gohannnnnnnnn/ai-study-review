@@ -84,6 +84,30 @@
   .badge.ok { color: var(--ok); background: var(--ok-soft); }
   .card-body { display: none; margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 12px; }
   .card.open .card-body { display: block; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab {
+    flex: 1; padding: 8px 0; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--card); font-size: 0.86rem; font-weight: 600; cursor: pointer;
+    color: var(--ink-soft); font-family: inherit;
+  }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .kt {
+    font-size: 0.88rem; font-weight: 700; color: var(--accent);
+    margin: 12px 0 4px; padding-left: 8px; border-left: 3px solid var(--accent);
+  }
+  .kb { font-size: 0.87rem; color: var(--ink); margin-bottom: 6px; }
+  .code-name {
+    font-size: 0.78rem; font-weight: 700; color: var(--gold);
+    margin: 10px 0 4px;
+  }
+  pre.code-block {
+    background: #f0f3fa; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; font-size: 0.78rem; line-height: 1.6;
+    font-family: "Consolas", "Courier New", monospace;
+    overflow-x: auto; white-space: pre; color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .tab-panel { min-height: 60px; }
   .q-progress { font-size: 0.76rem; color: var(--ink-soft); margin-bottom: 8px; }
   .q-type {
     display: inline-block; font-size: 0.7rem; padding: 1px 9px; border-radius: 10px;
@@ -305,12 +329,25 @@ function cardHTML(c, withBody) {
 
   let body = '';
   if (withBody) {
+    const kHTML = (c.knowledge || []).map(k =>
+      '<div class="kt">' + k.t + '</div><div class="kb">' + k.b + '</div>').join('');
+    const cHTML = (c.code || []).map(b =>
+      '<div class="code-name">' + b.name + '</div><pre class="code-block">' + esc(b.code) + '</pre>').join('');
     body = '<div class="card-body" id="body-' + c.id + '">' +
-      '<div id="quizArea-' + c.id + '"></div>' +
-      '<div class="points" id="pts-' + c.id + '" style="display:none"><b>要点回顾</b>' +
-        c.points.map(p => '<div class="pt">· ' + p + '</div>').join('') + '</div>' +
-      wrongHtml +
-      '<div class="next-info" id="next-' + c.id + '"></div>' +
+      '<div class="tabs">' +
+        '<button class="tab active" data-tab="learn" onclick="switchTab(\'' + c.id + '\',\'learn\')">知识点</button>' +
+        '<button class="tab" data-tab="code" onclick="switchTab(\'' + c.id + '\',\'code\')">代码</button>' +
+        '<button class="tab" data-tab="quiz" onclick="switchTab(\'' + c.id + '\',\'quiz\')">自测</button>' +
+      '</div>' +
+      '<div class="tab-panel" id="tab-learn-' + c.id + '">' + kHTML + '</div>' +
+      '<div class="tab-panel" id="tab-code-' + c.id + '" style="display:none">' + cHTML + '</div>' +
+      '<div class="tab-panel" id="tab-quiz-' + c.id + '" style="display:none">' +
+        '<div id="quizArea-' + c.id + '"></div>' +
+        '<div class="points" id="pts-' + c.id + '" style="display:none"><b>要点回顾</b>' +
+          c.points.map(p => '<div class="pt">· ' + p + '</div>').join('') + '</div>' +
+        wrongHtml +
+        '<div class="next-info" id="next-' + c.id + '"></div>' +
+      '</div>' +
       '</div>';
   }
 
@@ -323,15 +360,29 @@ function cardHTML(c, withBody) {
     '</div>' + body + '</div>';
 }
 
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function switchTab(id, tab) {
+  const body = document.getElementById('body-' + id);
+  if (!body) return;
+  body.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  ['learn', 'code', 'quiz'].forEach(t => {
+    const p = document.getElementById('tab-' + t + '-' + id);
+    if (p) p.style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'quiz' && !QUIZ[id]) {
+    QUIZ[id] = { idx: 0, results: [] };
+    renderQuestion(id);
+  }
+}
+
 function toggleCard(id) {
   const el = document.getElementById('card-' + id);
   const wasOpen = el.classList.contains('open');
   document.querySelectorAll('.card.open').forEach(x => x.classList.remove('open'));
-  if (!wasOpen) {
-    el.classList.add('open');
-    if (!QUIZ[id]) QUIZ[id] = { idx: 0, results: [] };
-    renderQuestion(id);
-  }
+  if (!wasOpen) el.classList.add('open');
 }
 
 function renderQuestion(id) {
