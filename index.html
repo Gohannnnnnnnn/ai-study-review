@@ -50,6 +50,27 @@
     color: var(--accent); font-family: inherit;
   }
   .copy-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+  #syncModal { display: none; position: fixed; inset: 0; background: rgba(34,48,74,.45); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  #syncModal.show { display: flex; }
+  .modal-box {
+    background: var(--card); border-radius: 14px; max-width: 520px; width: 100%;
+    padding: 18px; box-shadow: 0 8px 30px rgba(34,48,74,.25);
+  }
+  .modal-title { font-size: 0.95rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .modal-hint { font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 10px; }
+  .modal-box textarea {
+    width: 100%; min-height: 110px; border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px; font-size: 0.75rem; font-family: "Consolas", monospace;
+    color: var(--ink); background: var(--bg); resize: vertical;
+  }
+  .modal-btns { display: flex; gap: 8px; margin-top: 10px; }
+  .modal-btns button {
+    flex: 1; padding: 9px 0; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--card); font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit;
+    color: var(--ink);
+  }
+  .modal-btns button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .modal-btns button:hover { border-color: var(--accent); }
   .sec-title {
     font-size: 0.85rem; font-weight: 600; color: var(--ink-soft);
     margin: 22px 4px 10px; letter-spacing: 1px;
@@ -189,7 +210,21 @@
 </div>
 
 <div class="copy-row">
-  <button class="copy-btn" onclick="copySummary()">复制今日复习摘要（发给导师）</button>
+  <button class="copy-btn" onclick="copySummary()">复制复习摘要（发导师）</button>
+  <button class="copy-btn" onclick="openSync('export')">导出进度</button>
+  <button class="copy-btn" onclick="openSync('import')">导入进度</button>
+</div>
+
+<div id="syncModal">
+  <div class="modal-box">
+    <div class="modal-title" id="syncTitle">同步进度</div>
+    <div class="modal-hint" id="syncHint"></div>
+    <textarea id="syncText" spellcheck="false"></textarea>
+    <div class="modal-btns">
+      <button class="primary" id="syncMainBtn" onclick="syncMainAction()">复制</button>
+      <button onclick="closeSync()">关闭</button>
+    </div>
+  </div>
 </div>
 
 <div class="sec-title">今 日 复 习 清 单 <span class="cnt" id="todayCnt"></span></div>
@@ -263,15 +298,18 @@ function initState() {
   } else {
     STATE = {};
   }
-  // 补全新卡
+  ensureState();
+}
+
+function ensureState() {
+  // 补全新卡：没有排期记录的卡片初始化
   let changed = false;
   for (const c of CARDS) {
     if (!STATE[c.id]) {
       const age = ageDays(c.date);
-      const st = age > 7
+      STATE[c.id] = age > 7
         ? { interval_idx: 5, next_review: addDays(TODAY, 30), last_result: null, last_review: null, history: [] }
         : { interval_idx: 0, next_review: addDays(c.date, 1), last_result: null, last_review: null, history: [] };
-      STATE[c.id] = st;
       changed = true;
     }
   }
@@ -526,6 +564,56 @@ function renderAll() {
   document.getElementById('stAcc').textContent = todayTotal ? Math.round(100 * todayOk / todayTotal) + '%' : '--';
   document.getElementById('stWrong').textContent = wrongCards.length;
   document.getElementById('stPool').textContent = CARDS.length;
+}
+
+let syncMode = 'export';
+
+function openSync(mode) {
+  syncMode = mode;
+  const ta = document.getElementById('syncText');
+  const title = document.getElementById('syncTitle');
+  const hint = document.getElementById('syncHint');
+  const btn = document.getElementById('syncMainBtn');
+  if (mode === 'export') {
+    title.textContent = '导出进度（同步码）';
+    hint.textContent = '把下面的同步码复制，发到微信「文件传输助手」，在另一台设备上打开本页 → 导入进度 → 粘贴 → 导入。';
+    btn.textContent = '复制同步码';
+    ta.value = btoa(unescape(encodeURIComponent(JSON.stringify(STATE))));
+  } else {
+    title.textContent = '导入进度';
+    hint.textContent = '粘贴另一台设备导出的同步码，点「导入」。注意：导入会覆盖本机当前进度。';
+    btn.textContent = '导入';
+    ta.value = '';
+  }
+  document.getElementById('syncModal').classList.add('show');
+}
+
+function closeSync() {
+  document.getElementById('syncModal').classList.remove('show');
+}
+
+function syncMainAction() {
+  const ta = document.getElementById('syncText');
+  if (syncMode === 'export') {
+    const done = function() { showTip('同步码已复制，去另一台设备粘贴导入'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(done).catch(() => { ta.select(); document.execCommand('copy'); done(); });
+    } else { ta.select(); document.execCommand('copy'); done(); }
+  } else {
+    try {
+      const state = JSON.parse(decodeURIComponent(escape(atob(ta.value.trim()))));
+      if (!state || typeof state !== 'object') throw new Error('bad');
+      STATE = state;
+      localStorage.setItem(LS_KEY, JSON.stringify({version: CARDS_VERSION, state: STATE}));
+      ensureState();
+      saveState();
+      renderAll();
+      closeSync();
+      showTip('进度已导入，本机进度已更新');
+    } catch(e) {
+      showTip('同步码无效，请检查是否复制完整');
+    }
+  }
 }
 
 function copySummary() {
