@@ -1,0 +1,296 @@
+{
+  "system_name": "AI-Study 艾宾浩斯复习系统",
+  "created": "2026-08-21",
+  "version": 2,
+  "intervals_days": [1, 2, 4, 7, 15, 30],
+  "grace_days": 7,
+  "cards": [
+    {
+      "id": "task-014",
+      "title": "单篇文献智能提取器（阶段练习）",
+      "date": "2026-08-20",
+      "stage": "stage-2",
+      "tags": ["LLM实战", "PICO"],
+      "points": [
+        "提取器 = 输入摘要 → 输出 JSON 文献卡片；魔法全在 system prompt（定义表格列，LLM 负责填表）",
+        "PICO 框架：P 人群 / I 干预 / C 对照 / O 结局——从文献评价迁移到 prompt 设计",
+        "兜底规则写在格式模板的引号内，如 \"C\": \"对照措施（无对照填 无）\"，防止 AI 无对照时瞎编",
+        "data.items() 遍历：key = 字段名（标签），value = 字段内容；列再多打印只需两行"
+      ],
+      "quizzes": [
+        {"type": "base", "q": "单篇文献智能提取器最终输出的核心格式是什么？", "options": ["JSON 文献卡片", "纯文本总结", "Excel 表格", "图片"], "answer": 0},
+        {"type": "base", "q": "提取器里「决定输出内容质量」的关键，主要在哪个环节？", "options": ["Python 循环", "system prompt", "网络配置", "显卡"], "answer": 1},
+        {"type": "apply", "q": "一篇单臂研究（没有对照组），要让模型正确填 PICO 的 C 字段，兜底规则应该怎么写？", "options": ["\"C\": \"无\"", "\"C\": \"对照措施（无对照填 无）\"", "让模型自己决定", "删掉 C 字段"], "answer": 1},
+        {"type": "apply", "q": "data = {\"P\": \"肺癌患者\", \"I\": \"胸腔镜手术\", \"C\": \"无\", \"O\": \"并发症率\"}，要用两行代码把所有字段名和内容打印出来，正确的是哪段？", "options": ["for key in data: print(key)", "print(data)", "for key, value in data.items(): print(key, value)", "for value in data.values(): print(data)"], "answer": 2},
+        {"type": "mix", "q": "某篇摘要根本没提结局（O 字段），模型输出 O 为空。最合理的改进是什么？", "options": ["换一个模型", "在格式模板里写 \"O\": \"结局指标（无则填 未报告）\"", "把整段摘要重写一遍", "提高 temperature"], "answer": 1}
+      ],
+      "wrong_note": "错题（08-20）：.items() 遍历把 key 误当字典本身。记住：key 是「标签」，value 是「内容」。",
+      "mastery": 82
+    },
+    {
+      "id": "task-013",
+      "title": "Token 计数、上下文窗口、API 费用",
+      "date": "2026-08-19",
+      "stage": "stage-2",
+      "tags": ["Token", "费用"],
+      "points": [
+        "Token = LLM 处理文本的最小积木块；英文 1 token ≈ 0.75 词（1000 词 ≈ 1333 token），中文 1 字 ≈ 1-1.5 token",
+        "Context Window = 模型一次最多能接收的 token（输入+输出一起算）；DeepSeek 约 64K-128K；超了报错或被截断",
+        "费用 = 输入 token × 输入单价 + 输出 token × 输出单价；输入便宜（约 2 元/百万），输出贵（约 8 元/百万）",
+        "真实账：读 1 篇 10 页文献 ≈ 3 分钱，100 篇 ≈ 2-3 元——批量提取经济上完全可行"
+      ],
+      "quizzes": [
+        {"type": "base", "q": "英文文本里，1 个 token 大约等于多少个词？", "options": ["1 个词", "2 个词", "0.75 个词", "5 个词"], "answer": 2},
+        {"type": "base", "q": "Context Window（上下文窗口）指的是什么？", "options": ["模型训练数据的规模", "磁盘空间", "模型一次最多能接收的 token 数（输入+输出一起算）", "网络带宽"], "answer": 2},
+        {"type": "apply", "q": "一段中文约 1000 字，大概会占多少个 token？", "options": ["约 100", "约 500", "约 1000-1500", "约 3000"], "answer": 2},
+        {"type": "apply", "q": "一次调用：输入 20 万 token（单价 2 元/百万），输出 5 万 token（单价 8 元/百万）。总费用是多少？", "options": ["0.8 元", "1.2 元", "0.4 元", "2 元"], "answer": 0},
+        {"type": "mix", "q": "想把 100 篇文献（每篇约 10 页）一次全塞给 LLM 做提取，会发生什么？", "options": ["变慢但能行", "模型拒绝", "超出上下文窗口，报错或被截断", "没问题"], "answer": 2}
+      ],
+      "wrong_note": "错题（08-19）：万→百万换算小数点移位（10 万 = 0.1 百万，1.5 万 = 0.015 百万）。自查法：先写全数字再数零。",
+      "mastery": 85
+    },
+    {
+      "id": "task-012",
+      "title": "结构化输出：批量提取 + JSON 解析容错",
+      "date": "2026-08-18",
+      "stage": "stage-2",
+      "tags": ["JSON", "容错"],
+      "points": [
+        "参数 vs 步骤：参数 = 输入口（prompt / system / model / temperature）；步骤 = 内部 4 步（选客户端 → 组织消息 → 发请求 → 取正文）",
+        "批量升级：abstract 单字符串 → abstracts 列表 + for 循环；for 自己数元素个数，列表加元素不用改循环",
+        "try/except：try = 危险区，except = 兜底区；没接住的报错会让整个程序立即停止",
+        "抢救策略：find(\"{\") / rfind(\"}\") 找路标 + 切片 result[start:end+1]（含头不含尾，+1 圈住 }）",
+        "find 找不到返回 -1（不是 0）：0 是合法索引「第 0 位」，会撞车"
+      ],
+      "quizzes": [
+        {"type": "base", "q": "try/except 结构里，try 块的作用是什么？", "options": ["兜底区", "危险区，可能报错的代码放这里", "循环区", "输出区"], "answer": 1},
+        {"type": "base", "q": "在字符串里 find(\"}\") 找不到目标时，返回什么？", "options": ["0", "None", "直接报错", "-1"], "answer": 3},
+        {"type": "apply", "q": "result = \"abcdefghijklmnopqrst\"，切片 result[10:20] 包含哪些字符？（含头不含尾）", "options": ["第 10 到第 20 位（共 11 个）", "第 10 到第 19 位（共 10 个）", "第 11 到第 20 位（共 10 个）", "第 10 到第 21 位（共 12 个）"], "answer": 1},
+        {"type": "apply", "q": "批量处理 10 篇摘要，第 3 篇模型返回了空内容，而代码没写 try/except。会发生什么？", "options": ["自动跳过第 3 篇继续", "程序崩溃停止，第 4-10 篇全都处理不了", "自动重试第 3 篇", "输出空结果继续处理"], "answer": 1},
+        {"type": "mix", "q": "模型返回的文本开头有几行废话，然后才是真正的 JSON。用哪两个函数可以定位出 JSON 的起止位置？", "options": ["len() 和 max()", "find(\"{\") 和 rfind(\"}\")", "split() 和 join()", "open() 和 close()"], "answer": 1}
+      ],
+      "wrong_note": "错题（08-18）：find 找不到返回 -1 误答 0。0 是合法索引（第 0 位），Python 用 -1 表示找不到。",
+      "mastery": 82
+    },
+    {
+      "id": "task-011",
+      "title": "Prompt Engineering：系统提示词 + 输出格式控制",
+      "date": "2026-08-17",
+      "stage": "stage-2",
+      "tags": ["Prompt", "system"],
+      "points": [
+        "温度 = 随机性旋钮，不是精确度：低 = 稳定可预测，高 = 多样可能跑偏；不决定对错",
+        "带引号 = 值本身（字符串字面量），不带引号 = 变量名——\"system\" 是字面量，prompt 是变量",
+        "messages 三角色：system（幕后指令）/ user（用户问题）/ assistant（模型回答）",
+        "system prompt 三要素：身份 + 指令 + 格式模板；模板管形状，禁止项管干净",
+        "json.loads = 把字符串变成字典（s = string）；json.load 是读文件——别搞混",
+        "函数定义与调用必须同步：定义处加了参数，调用处必须传，否则 TypeError"
+      ],
+      "quizzes": [
+        {"type": "base", "q": "把 temperature 调低，会产生什么效果？", "options": ["输出更多样", "提高精确度", "输出更稳定可预测", "加快响应速度"], "answer": 2},
+        {"type": "base", "q": "json.loads 的作用是什么？", "options": ["字典 → 字符串", "读文件", "写文件", "字符串 → 字典"], "answer": 3},
+        {"type": "apply", "q": "messages = [{\"role\": \"system\", ...}, {\"role\": \"user\", ...}]，那么 assistant 这个角色什么时候出现？", "options": ["用户提问时", "初始设定时", "永远不出现", "模型返回回答时"], "answer": 3},
+        {"type": "apply", "q": "要让模型严格只输出 JSON（一个多余的字都不行），最有效的做法是什么？", "options": ["什么都不用做", "加大 temperature", "只写「请专业一点」", "system prompt 里写「只输出 JSON，不要任何其他文字」并给出 JSON 格式模板"], "answer": 3},
+        {"type": "mix", "q": "def ask_llm(prompt, system=\"\")：定义时 system 给了默认值。调用 ask_llm(\"你好\") 不传 system，程序会怎样？", "options": ["报 TypeError", "随机出错", "正常运行，system 用默认值", "只返回 prompt 不调用模型"], "answer": 2}
+      ],
+      "wrong_note": "",
+      "mastery": 88
+    },
+    {
+      "id": "task-010",
+      "title": "用 Python 调用大模型 API",
+      "date": "2026-08-08",
+      "stage": "stage-2",
+      "tags": ["API"],
+      "points": [
+        "ask_llm(prompt) → 返回模型回复文本：把 ChatGPT 从聊天框拿出来，变成代码里的一个函数调用",
+        "调用 4 步：选模型 → 组装请求（模型名 + messages + 温度）→ 发请求 → 取正文",
+        "本地 qwen / 云端 DeepSeek 双模式切换，同一份代码两种后端",
+        "API Key 是身份凭证，放在代码里或环境变量，不能公开"
+      ],
+      "quiz": {
+        "q": "ask_llm(prompt) 这个函数调用完，拿到的是什么？",
+        "options": ["模型的回复文本", "请求发出的时间", "完整请求字典", "prompt 本身"],
+        "answer": 0
+      },
+      "wrong_note": "",
+      "mastery": 80
+    },
+    {
+      "id": "task-009",
+      "title": "什么是大语言模型：Token / 上下文窗口 / 温度",
+      "date": "2026-08-08",
+      "stage": "stage-2",
+      "tags": ["LLM概念"],
+      "points": [
+        "LLM 不是查数据库，是「预测下一个词」——逐个词往下猜，猜出整句回答",
+        "Token 是文本的最小积木块，不是字；一个英文单词 ≈ 1-1.5 个 token",
+        "上下文窗口 = 模型一次能「看到」的最大文本量；塞满了旧内容会被挤掉或报错",
+        "温度 = 随机性旋钮：低更稳定，高更有创造力"
+      ],
+      "quiz": {
+        "q": "大语言模型回答问题时，本质上是做什么？",
+        "options": ["查数据库", "预测下一个词", "复制网页内容", "翻译你的问题"],
+        "answer": 1
+      },
+      "wrong_note": "",
+      "mastery": 90
+    },
+    {
+      "id": "task-008",
+      "title": "阶段练习：文献元数据管理器",
+      "date": "2026-08-08",
+      "stage": "stage-1",
+      "tags": ["实战", "数据结构"],
+      "points": [
+        "核心数据结构：8 字段字典 + 列表套字典（一个列表装很多篇文献，每篇是一个字典）",
+        "功能拆成函数：add_paper / show_all / save / load——程序 = 功能模块拼装",
+        "函数参数传递：把 papers 列表传进函数，函数内修改会真实改变外面的列表（列表是「引用」）",
+        "json.dump = 把数据写入文件；json.load = 从文件读回来（持久化：程序关了数据还在）",
+        "enumerate() = for 循环同时拿「序号」和「元素」"
+      ],
+      "quiz": {
+        "q": "把一个列表 papers 传进函数，函数里执行 papers.append(新文献)。函数结束后，外面的 papers 会变长吗？",
+        "options": ["会，列表传的是引用，函数内改的就是外面那个", "不会，函数里是副本", "会报错", "看运气"],
+        "answer": 0
+      },
+      "wrong_note": "薄弱点（08-08）：函数参数传递机制不牢固——papers 在函数间怎么流转。上面这题就是盯防。",
+      "mastery": 65
+    },
+    {
+      "id": "task-007",
+      "title": "pip 安装第三方包 + import 使用",
+      "date": "2026-08-07",
+      "stage": "stage-1",
+      "tags": ["工具"],
+      "points": [
+        "pip = Python 的「应用商店」：pip install 包名 安装，装完就能用别人写好的功能",
+        "import 包名 引入；from 包 import 函数 只引入需要的部分",
+        "装包前先想清楚装在哪：uv 管理的项目用 uv pip install，避免装错环境"
+      ],
+      "quiz": {
+        "q": "pip install requests 装完之后，在代码里用什么关键字把这个包引进来？",
+        "options": ["include", "import", "using", "load"],
+        "answer": 1
+      },
+      "wrong_note": "",
+      "mastery": 85
+    },
+    {
+      "id": "task-006",
+      "title": "读写文件：txt / JSON",
+      "date": "2026-08-05",
+      "stage": "stage-1",
+      "tags": ["文件操作"],
+      "points": [
+        "json.dump(数据, 文件) = 把数据写进文件；json.load(文件) = 从文件读回数据",
+        "持久化：程序关了数据还在——下次启动读回来接着用（文献管理器的基础）",
+        "with open(路径, \"w\") 打开文件，用完自动关闭"
+      ],
+      "quiz": {
+        "q": "要把一个 Python 字典存进 JSON 文件，用哪个函数？",
+        "options": ["json.load", "json.dump", "open()", "print()"],
+        "answer": 1
+      },
+      "wrong_note": "",
+      "mastery": 90
+    },
+    {
+      "id": "task-005",
+      "title": "if/else 判断 + 函数定义",
+      "date": "2026-08-02",
+      "stage": "stage-1",
+      "tags": ["函数", "判断"],
+      "points": [
+        "def 函数名(参数): 定义函数——把一段逻辑打包，随时调用",
+        "if / elif / else：条件判断走哪条路；判断的是「条件成立与否」",
+        "return = 把结果交出来；不带 return 的函数返回 None",
+        "字典语法：创建用 { 键: 值 }，冒号是分隔符；赋值用 =（两个不一样）"
+      ],
+      "quiz": {
+        "q": "def add(a, b): return a + b 定义好了。执行 add(2, 3) 会得到什么？",
+        "options": ["5", "\"23\"", "23", "报错"],
+        "answer": 0
+      },
+      "wrong_note": "错题（08-08 热身）：字典创建 `=` vs `:` 混淆——字典里键值之间是冒号，不是等号。",
+      "mastery": 88
+    },
+    {
+      "id": "task-004",
+      "title": "列表、字典、for 循环",
+      "date": "2026-08-01",
+      "stage": "stage-1",
+      "tags": ["数据结构"],
+      "points": [
+        "列表 [ ]：一列数据，papers[0] 取第 1 个（下标从 0 开始）",
+        "字典 { }：键值对，p[\"标题\"] 按标签取值",
+        "for 元素 in 列表：自动遍历，不用自己数下标",
+        "文献管理 = 列表套字典：列表装多篇，字典装一篇"
+      ],
+      "quiz": {
+        "q": "p = {\"标题\": \"肺癌研究\", \"年份\": 2024}，p[\"标题\"] 返回什么？",
+        "options": ["\"肺癌研究\"", "2024", "p 本身", "报错"],
+        "answer": 0
+      },
+      "wrong_note": "",
+      "mastery": 95
+    },
+    {
+      "id": "task-003",
+      "title": "变量、数字、字符串、print、input",
+      "date": "2026-07-31",
+      "stage": "stage-1",
+      "tags": ["基础"],
+      "points": [
+        "变量 = 装数据的盒子：name = \"Leo\" 把 \"Leo\" 装进 name",
+        "字符串要带引号，数字不带；f-string 用 {} 往字符串里插值",
+        "input() 接收用户输入，print() 输出"
+      ],
+      "quiz": {
+        "q": "name = \"Leo\"，执行 print(f\"你好，{name}\") 会输出什么？",
+        "options": ["你好，{name}", "你好，Leo", "你好，name", "报错"],
+        "answer": 1
+      },
+      "wrong_note": "",
+      "mastery": 88
+    },
+    {
+      "id": "task-002",
+      "title": "终端入门：cd、ls、python 命令",
+      "date": "2026-07-31",
+      "stage": "stage-0",
+      "tags": ["工具"],
+      "points": [
+        "cd 目录名 = 切换目录（change directory），cd .. 回上一级",
+        "ls = 列出当前目录文件",
+        "python 文件名.py = 运行这个脚本"
+      ],
+      "quiz": {
+        "q": "在终端里，cd 命令的作用是什么？",
+        "options": ["创建新目录", "切换当前目录", "查看文件内容", "删除文件"],
+        "answer": 1
+      },
+      "wrong_note": "",
+      "mastery": 90
+    },
+    {
+      "id": "task-001",
+      "title": "开发环境：VS Code + Python 第一行代码",
+      "date": "2026-07-31",
+      "stage": "stage-0",
+      "tags": ["工具"],
+      "points": [
+        "写代码三步：建 .py 文件 → 写代码 → 运行",
+        "print(\"...\") = 把内容打印到屏幕",
+        "VS Code 里右键 Run / 底部终端 python 文件.py 都能运行"
+      ],
+      "quiz": {
+        "q": "在终端里运行一个 Python 脚本 hello.py，命令是什么？",
+        "options": ["python hello.py", "run hello.py", "hello.py", "python -run hello"],
+        "answer": 0
+      },
+      "wrong_note": "",
+      "mastery": 85
+    }
+  ]
+}
